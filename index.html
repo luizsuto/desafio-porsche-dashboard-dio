@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Porsche Sales Performance Analytics</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#111111;
+    --card:#1E1E1E;
+    --card-border:#2A2A2A;
+    --text:#F2F2F2;
+    --text-dim:#A6A6A6;
+    --red:#D5001C;
+    --red-dim:#7a0011;
+    --silver:#C9CCD1;
+    --gold:#C9A227;
+    --good:#2ecc71;
+    --bad:#e74c3c;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    background:radial-gradient(circle at top, #1a1a1a 0%, #0c0c0c 60%);
+    color:var(--text);
+    font-family:'Inter','Roboto',Arial,sans-serif;
+    min-height:100vh;
+    padding-bottom:60px;
+  }
+  header{
+    padding:28px 40px;
+    border-bottom:1px solid var(--card-border);
+    background:linear-gradient(180deg,#151515 0%, #101010 100%);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  header .brand{
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+  header .crest{
+    width:44px;height:44px;
+    border-radius:50%;
+    background:linear-gradient(135deg,var(--red) 0%, #8a0012 100%);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;
+    font-size:18px;
+    letter-spacing:1px;
+    color:#fff;
+    box-shadow:0 0 0 2px var(--gold), 0 4px 14px rgba(213,0,28,0.4);
+  }
+  header h1{
+    font-size:22px;
+    font-weight:700;
+    letter-spacing:0.3px;
+  }
+  header .sub{
+    color:var(--text-dim);
+    font-size:12.5px;
+    margin-top:2px;
+  }
+  header .tag{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:1.5px;
+    color:var(--gold);
+    border:1px solid rgba(201,162,39,0.4);
+    padding:6px 12px;
+    border-radius:20px;
+  }
+
+  .container{
+    max-width:1400px;
+    margin:0 auto;
+    padding:28px 32px 0 32px;
+  }
+
+  /* KPI CARDS */
+  .kpi-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:18px;
+    margin-bottom:28px;
+  }
+  .kpi-card{
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:14px;
+    padding:20px 22px;
+    position:relative;
+    overflow:hidden;
+    transition:transform .15s ease, border-color .15s ease;
+  }
+  .kpi-card:hover{
+    transform:translateY(-2px);
+    border-color:rgba(213,0,28,0.5);
+  }
+  .kpi-card::before{
+    content:"";
+    position:absolute;
+    top:0;left:0;
+    width:4px;height:100%;
+    background:var(--red);
+  }
+  .kpi-label{
+    font-size:12px;
+    color:var(--text-dim);
+    text-transform:uppercase;
+    letter-spacing:0.8px;
+    margin-bottom:10px;
+  }
+  .kpi-value{
+    font-size:26px;
+    font-weight:800;
+    color:#fff;
+    line-height:1.15;
+  }
+  .kpi-value.accent{ color:var(--red); }
+  .kpi-sub{
+    font-size:11.5px;
+    color:var(--silver);
+    margin-top:6px;
+  }
+
+  /* FILTERS */
+  .filters{
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:14px;
+    padding:18px 22px;
+    margin-bottom:28px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:14px;
+    align-items:flex-end;
+  }
+  .filter-group{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    min-width:170px;
+    flex:1;
+  }
+  .filter-group label{
+    font-size:11px;
+    color:var(--text-dim);
+    text-transform:uppercase;
+    letter-spacing:0.6px;
+  }
+  select{
+    background:#141414;
+    color:var(--text);
+    border:1px solid #333;
+    border-radius:8px;
+    padding:10px 12px;
+    font-size:13.5px;
+    font-family:inherit;
+    outline:none;
+    cursor:pointer;
+    transition:border-color .15s ease;
+  }
+  select:hover, select:focus{
+    border-color:var(--red);
+  }
+  .btn-clear{
+    background:transparent;
+    color:var(--red);
+    border:1px solid var(--red);
+    border-radius:8px;
+    padding:10px 18px;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+    transition:all .15s ease;
+    white-space:nowrap;
+    height:39px;
+  }
+  .btn-clear:hover{
+    background:var(--red);
+    color:#fff;
+  }
+  .result-count{
+    font-size:12px;
+    color:var(--text-dim);
+    margin-left:auto;
+    align-self:center;
+    padding-top:14px;
+  }
+
+  /* CHART GRID */
+  .charts-grid{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:22px;
+    margin-bottom:10px;
+  }
+  .chart-row-2{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:22px;
+  }
+  .chart-card{
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:14px;
+    padding:22px;
+  }
+  .chart-card h3{
+    font-size:15px;
+    font-weight:700;
+    margin-bottom:2px;
+    color:#fff;
+  }
+  .chart-card .q{
+    font-size:12px;
+    color:var(--text-dim);
+    margin-bottom:16px;
+    line-height:1.4;
+  }
+  .chart-wrap{
+    position:relative;
+    height:320px;
+  }
+  .chart-wrap.tall{ height:380px; }
+
+  .empty-state{
+    text-align:center;
+    color:var(--text-dim);
+    padding:60px 0;
+    font-size:13px;
+  }
+
+  footer{
+    text-align:center;
+    color:var(--text-dim);
+    font-size:11.5px;
+    padding:30px 0 10px;
+  }
+
+  @media (max-width:1100px){
+    .kpi-grid{grid-template-columns:repeat(2,1fr);}
+    .chart-row-2{grid-template-columns:1fr;}
+  }
+  @media (max-width:600px){
+    .kpi-grid{grid-template-columns:1fr;}
+    header{padding:20px;}
+    .container{padding:20px 16px 0;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="crest">P</div>
+    <div>
+      <h1>Porsche Sales Performance Analytics</h1>
+      <div class="sub">Painel executivo de vendas &mdash; visão consolidada de faturamento, volume e performance por modelo</div>
+    </div>
+  </div>
+  <div class="tag">Dark Mode &middot; Executive</div>
+</header>
+
+<div class="container">
+
+  <!-- KPI CARDS -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Faturamento Total</div>
+      <div class="kpi-value accent" id="kpi-revenue">$ 0.00</div>
+      <div class="kpi-sub" id="kpi-revenue-sub">&nbsp;</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Volume Total de Vendas</div>
+      <div class="kpi-value" id="kpi-volume">0</div>
+      <div class="kpi-sub">unidades vendidas</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Ticket Médio por Veículo</div>
+      <div class="kpi-value" id="kpi-avg">$ 0.00</div>
+      <div class="kpi-sub">receita &divide; volume</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Modelo Mais Vendido (Receita)</div>
+      <div class="kpi-value" id="kpi-topmodel" style="font-size:19px;">&mdash;</div>
+      <div class="kpi-sub" id="kpi-topmodel-sub">&nbsp;</div>
+    </div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filters">
+    <div class="filter-group">
+      <label for="f-model">Modelo</label>
+      <select id="f-model"><option value="all">Todos</option></select>
+    </div>
+    <div class="filter-group">
+      <label for="f-state">Estado / UF</label>
+      <select id="f-state"><option value="all">Todos</option></select>
+    </div>
+    <div class="filter-group">
+      <label for="f-year">Ano do Modelo</label>
+      <select id="f-year"><option value="all">Todos</option></select>
+    </div>
+    <div class="filter-group">
+      <label for="f-pay">Método de Pagamento</label>
+      <select id="f-pay"><option value="all">Todos</option></select>
+    </div>
+    <button class="btn-clear" id="btn-clear">Limpar Filtros</button>
+    <div class="result-count" id="result-count"></div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="charts-grid">
+
+    <div class="chart-card">
+      <h3>1. Visão Geral de Faturamento por Ano do Modelo</h3>
+      <div class="q">Como o faturamento total evolui conforme o ano de fabricação dos veículos vendidos?</div>
+      <div class="chart-wrap">
+        <canvas id="chartRevenueByYear"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h3>2. Faturamento e Volume por Estado</h3>
+      <div class="q">Quais estados concentram o maior faturamento e volume de vendas (Top 10)?</div>
+      <div class="chart-wrap tall">
+        <canvas id="chartByState"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-row-2">
+      <div class="chart-card">
+        <h3>3a. Top 10 Modelos &mdash; Maior Faturamento</h3>
+        <div class="q">Quais modelos lideram a receita e merecem foco comercial?</div>
+        <div class="chart-wrap tall">
+          <canvas id="chartTopModels"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3>3b. Modelos de Menor Desempenho</h3>
+        <div class="q">Quais linhas apresentam menor faturamento &mdash; candidatas à revisão de portfólio?</div>
+        <div class="chart-wrap tall">
+          <canvas id="chartBottomModels"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>Porsche Sales Performance Analytics &middot; Dashboard gerado a partir da base tratada (porsche.xlsx) &middot; 100 registros</footer>
+</div>
+
+<script>
+/* =========================================================
+   DADOS EMBUTIDOS (base tratada porsche.xlsx)
+   ========================================================= */
+const RAW_DATA = [{"sale_id": 6, "SaleDateSanitized": null, "PorscheModelSanitized": "718 Cayman", "ModelYearSanitized": 2022, "SalesPriceSanitized": 79500.0, "VehicleMileageSanitized": 9800, "PayMethodSanitized": "Credit Card", "CitySanitized": "Boston", "StateSanitized": "MA", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 7, "SaleDateSanitized": "2024-03-14", "PorscheModelSanitized": "911 Turbo S", "ModelYearSanitized": 2024, "SalesPriceSanitized": 235000.0, "VehicleMileageSanitized": 1200, "PayMethodSanitized": "Wire Transfer", "CitySanitized": "Seattle", "StateSanitized": "WA", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 8, "SaleDateSanitized": "2024-04-18", "PorscheModelSanitized": "Cayenne Coupe", "ModelYearSanitized": 2023, "SalesPriceSanitized": 112750.0, "VehicleMileageSanitized": 6400, "PayMethodSanitized": "Financing", "CitySanitized": "Austin", "StateSanitized": "TX", "DeliveryStatusSanitized": "In Transit"}, {"sale_id": 9, "SaleDateSanitized": null, "PorscheModelSanitized": "Macan S", "ModelYearSanitized": 2021, "SalesPriceSanitized": 68900.0, "VehicleMileageSanitized": 28, "PayMethodSanitized": "Cash", "CitySanitized": "Denver", "StateSanitized": "CO", "DeliveryStatusSanitized": "Pending"}, {"sale_id": 10, "SaleDateSanitized": "2024-05-22", "PorscheModelSanitized": "Taycan 4S", "ModelYearSanitized": 2024, "SalesPriceSanitized": 121000.0, "VehicleMileageSanitized": 0, "PayMethodSanitized": "Bank Transfer", "CitySanitized": "Los Angeles", "StateSanitized": "CA", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 11, "SaleDateSanitized": "2024-08-06", "PorscheModelSanitized": "Panamera 4", "ModelYearSanitized": 2023, "SalesPriceSanitized": 104500.0, "VehicleMileageSanitized": 14500, "PayMethodSanitized": "Credit Card", "CitySanitized": "Miami", "StateSanitized": "FL", "DeliveryStatusSanitized": "Cancelled"}, {"sale_id": 12, "SaleDateSanitized": "2024-07-11", "PorscheModelSanitized": "911 Carrera S", "ModelYearSanitized": 2020, "SalesPriceSanitized": 96300.0, "VehicleMileageSanitized": 41000, "PayMethodSanitized": "Lease", "CitySanitized": "New York", "StateSanitized": "NY", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 13, "SaleDateSanitized": null, "PorscheModelSanitized": "Cayenne E-Hybrid", "ModelYearSanitized": 2022, "SalesPriceSanitized": 89750.0, "VehicleMileageSanitized": 11744, "PayMethodSanitized": "Wire Transfer", "CitySanitized": "San Diego", "StateSanitized": "CA", "DeliveryStatusSanitized": "Pending Approval"}, {"sale_id": 14, "SaleDateSanitized": "2024-08-19", "PorscheModelSanitized": "718 Boxster", "ModelYearSanitized": 2021, "SalesPriceSanitized": 73500.0, "VehicleMileageSanitized": 22300, "PayMethodSanitized": "Debit Card", "CitySanitized": "Chicago", "StateSanitized": "IL", "DeliveryStatusSanitized": "Shipped"}, {"sale_id": 15, "SaleDateSanitized": "2024-09-02", "PorscheModelSanitized": "Macan GTS", "ModelYearSanitized": 2024, "SalesPriceSanitized": 95000.0, "VehicleMileageSanitized": 3500, "PayMethodSanitized": "Financing", "CitySanitized": "Phoenix", "StateSanitized": "AZ", "DeliveryStatusSanitized": "In Transit"}, {"sale_id": 16, "SaleDateSanitized": "2024-09-17", "PorscheModelSanitized": "Taycan Turbo", "ModelYearSanitized": 2023, "SalesPriceSanitized": 153200.5, "VehicleMileageSanitized": 11, "PayMethodSanitized": "ACH Payment", "CitySanitized": "Dallas", "StateSanitized": "TX", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 17, "SaleDateSanitized": null, "PorscheModelSanitized": "911 GT3", "ModelYearSanitized": 2024, "SalesPriceSanitized": 241000.0, "VehicleMileageSanitized": 750, "PayMethodSanitized": "Wire Transfer", "CitySanitized": "Las Vegas", "StateSanitized": "NV", "DeliveryStatusSanitized": "Pending"}, {"sale_id": 18, "SaleDateSanitized": "2024-05-11", "PorscheModelSanitized": "Panamera Turbo S", "ModelYearSanitized": 2022, "SalesPriceSanitized": 132000.0, "VehicleMileageSanitized": 19250, "PayMethodSanitized": "Cash", "CitySanitized": "San Jose", "StateSanitized": "CA", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 19, "SaleDateSanitized": "2024-12-12", "PorscheModelSanitized": "Cayenne Turbo GT", "ModelYearSanitized": 2024, "SalesPriceSanitized": 188000.0, "VehicleMileageSanitized": 2100, "PayMethodSanitized": "Crypto Payment", "CitySanitized": "Houston", "StateSanitized": "TX", "DeliveryStatusSanitized": "Awaiting Delivery"}, {"sale_id": 20, "SaleDateSanitized": "2024-12-25", "PorscheModelSanitized": "911 Carrera Cabriolet", "ModelYearSanitized": 2023, "SalesPriceSanitized": 127800.0, "VehicleMileageSanitized": 12000, "PayMethodSanitized": "Credit Card", "CitySanitized": "Atlanta", "StateSanitized": "GA", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 21, "SaleDateSanitized": "2025-01-06", "PorscheModelSanitized": "Macan", "ModelYearSanitized": 2021, "SalesPriceSanitized": 58900.0, "VehicleMileageSanitized": 33700, "PayMethodSanitized": "Bank Transfer", "CitySanitized": "Orlando", "StateSanitized": "FL", "DeliveryStatusSanitized": "Pending"}, {"sale_id": 22, "SaleDateSanitized": null, "PorscheModelSanitized": "718 Spyder RS", "ModelYearSanitized": 2024, "SalesPriceSanitized": 164000.0, "VehicleMileageSanitized": 900, "PayMethodSanitized": "Financing", "CitySanitized": "Portland", "StateSanitized": "OR", "DeliveryStatusSanitized": "In Transit"}, {"sale_id": 23, "SaleDateSanitized": "2025-02-14", "PorscheModelSanitized": "Taycan Cross Turismo", "ModelYearSanitized": 2023, "SalesPriceSanitized": 118500.0, "VehicleMileageSanitized": 7800, "PayMethodSanitized": "Wire Transfer", "CitySanitized": "Charlotte", "StateSanitized": "NC", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 24, "SaleDateSanitized": null, "PorscheModelSanitized": "Cayenne S", "ModelYearSanitized": 2022, "SalesPriceSanitized": 91300.0, "VehicleMileageSanitized": 16000, "PayMethodSanitized": "Credit Card", "CitySanitized": "Nashville", "StateSanitized": "TN", "DeliveryStatusSanitized": "Pending"}, {"sale_id": 25, "SaleDateSanitized": "2025-03-21", "PorscheModelSanitized": "911 Targa 4S", "ModelYearSanitized": 2024, "SalesPriceSanitized": 158750.0, "VehicleMileageSanitized": 2500, "PayMethodSanitized": "Lease", "CitySanitized": "Minneapolis", "StateSanitized": "MN", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 26, "SaleDateSanitized": "2025-03-28", "PorscheModelSanitized": "Panamera", "ModelYearSanitized": 2020, "SalesPriceSanitized": 72000.0, "VehicleMileageSanitized": 49000, "PayMethodSanitized": "Bank Transfer", "CitySanitized": "Philadelphia", "StateSanitized": "PA", "DeliveryStatusSanitized": "Cancelled"}, {"sale_id": 27, "SaleDateSanitized": "2025-04-09", "PorscheModelSanitized": "Macan Electric", "ModelYearSanitized": 2025, "SalesPriceSanitized": 86500.0, "VehicleMileageSanitized": 0, "PayMethodSanitized": "Wire Transfer", "CitySanitized": "San Antonio", "StateSanitized": "TX", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 28, "SaleDateSanitized": null, "PorscheModelSanitized": "911 Dakar", "ModelYearSanitized": 2024, "SalesPriceSanitized": 270000.0, "VehicleMileageSanitized": 1050, "PayMethodSanitized": "Cash", "CitySanitized": "Salt Lake City", "StateSanitized": "UT", "DeliveryStatusSanitized": "Awaiting Pickup"}, {"sale_id": 29, "SaleDateSanitized": "2025-05-12", "PorscheModelSanitized": "Taycan GTS", "ModelYearSanitized": 2023, "SalesPriceSanitized": 139000.0, "VehicleMileageSanitized": 6250, "PayMethodSanitized": "Financing", "CitySanitized": "Raleigh", "StateSanitized": "NC", "DeliveryStatusSanitized": "In Transit"}, {"sale_id": 30, "SaleDateSanitized": "2025-06-18", "PorscheModelSanitized": "Cayenne", "ModelYearSanitized": 2021, "SalesPriceSanitized": 76800.0, "VehicleMileageSanitized": 38400, "PayMethodSanitized": "Credit Card", "CitySanitized": "Detroit", "StateSanitized": "MI", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 31, "SaleDateSanitized": null, "PorscheModelSanitized": "718 Cayman GT4 RS", "ModelYearSanitized": 2024, "SalesPriceSanitized": 173600.0, "VehicleMileageSanitized": 400, "PayMethodSanitized": "Wire Transfer", "CitySanitized": "Columbus", "StateSanitized": "OH", "DeliveryStatusSanitized": "Pending"}, {"sale_id": 32, "SaleDateSanitized": "2025-07-07", "PorscheModelSanitized": "911 Carrera GTS", "ModelYearSanitized": 2022, "SalesPriceSanitized": 119900.0, "VehicleMileageSanitized": 13600, "PayMethodSanitized": "Cash", "CitySanitized": "Indianapolis", "StateSanitized": "IN", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 33, "SaleDateSanitized": "2025-07-22", "PorscheModelSanitized": "Panamera 4 E-Hybrid", "ModelYearSanitized": 2023, "SalesPriceSanitized": 109250.0, "VehicleMileageSanitized": 8900, "PayMethodSanitized": "Lease", "CitySanitized": "Fort Worth", "StateSanitized": "TX", "DeliveryStatusSanitized": "In Transit"}, {"sale_id": 34, "SaleDateSanitized": "2025-08-14", "PorscheModelSanitized": "Macan T", "ModelYearSanitized": 2022, "SalesPriceSanitized": 82000.0, "VehicleMileageSanitized": 21750, "PayMethodSanitized": "Wire Transfer", "CitySanitized": "Jacksonville", "StateSanitized": "FL", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 35, "SaleDateSanitized": "2025-09-01", "PorscheModelSanitized": "Taycan Turbo S", "ModelYearSanitized": 2025, "SalesPriceSanitized": 214000.0, "VehicleMileageSanitized": 0, "PayMethodSanitized": "Crypto Payment", "CitySanitized": "San Diego", "StateSanitized": "CA", "DeliveryStatusSanitized": "Pending Review"}, {"sale_id": 36, "SaleDateSanitized": null, "PorscheModelSanitized": "911 Carrera", "ModelYearSanitized": 2024, "SalesPriceSanitized": 124500.0, "VehicleMileageSanitized": 4800, "PayMethodSanitized": "Credit Card", "CitySanitized": "Tampa", "StateSanitized": "FL", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 37, "SaleDateSanitized": "2025-09-18", "PorscheModelSanitized": "Cayenne S", "ModelYearSanitized": 2023, "SalesPriceSanitized": 98200.0, "VehicleMileageSanitized": 12200, "PayMethodSanitized": "Bank Transfer", "CitySanitized": "Sacramento", "StateSanitized": "CA", "DeliveryStatusSanitized": "Pending"}, {"sale_id": 38, "SaleDateSanitized": "2025-10-04", "PorscheModelSanitized": "Macan", "ModelYearSanitized": 2022, "SalesPriceSanitized": 67500.0, "VehicleMileageSanitized": 24100, "PayMethodSanitized": "Financing", "CitySanitized": "Cleveland", "StateSanitized": "OH", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 39, "SaleDateSanitized": "2025-10-12", "PorscheModelSanitized": "Taycan", "ModelYearSanitized": 2025, "SalesPriceSanitized": 116900.0, "VehicleMileageSanitized": 0, "PayMethodSanitized": "Wire Transfer", "CitySanitized": "Milwaukee", "StateSanitized": "WI", "DeliveryStatusSanitized": "In Transit"}, {"sale_id": 40, "SaleDateSanitized": "2025-10-29", "PorscheModelSanitized": "Panamera 4S", "ModelYearSanitized": 2024, "SalesPriceSanitized": 112000.0, "VehicleMileageSanitized": 10, "PayMethodSanitized": "Cash", "CitySanitized": "Kansas City", "StateSanitized": "MO", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 41, "SaleDateSanitized": "2025-02-11", "PorscheModelSanitized": "718 Boxster", "ModelYearSanitized": 2021, "SalesPriceSanitized": 74000.0, "VehicleMileageSanitized": 31000, "PayMethodSanitized": "Debit Card", "CitySanitized": "Omaha", "StateSanitized": "NE", "DeliveryStatusSanitized": "Cancelled"}, {"sale_id": 42, "SaleDateSanitized": "2025-11-16", "PorscheModelSanitized": "911 Turbo", "ModelYearSanitized": 2024, "SalesPriceSanitized": 198300.0, "VehicleMileageSanitized": 2400, "PayMethodSanitized": "Wire Transfer", "CitySanitized": "Albuquerque", "StateSanitized": "NM", "DeliveryStatusSanitized": "Awaiting Delivery"}, {"sale_id": 43, "SaleDateSanitized": null, "PorscheModelSanitized": "Cayenne Coupe", "ModelYearSanitized": 2023, "SalesPriceSanitized": 103750.0, "VehicleMileageSanitized": 6773, "PayMethodSanitized": "Wire Transfer", "CitySanitized": "Tucson", "StateSanitized": "AZ", "DeliveryStatusSanitized": "Pending Approval"}, {"sale_id": 44, "SaleDateSanitized": null, "PorscheModelSanitized": "Macan GTS", "ModelYearSanitized": 2024, "SalesPriceSanitized": 93600.0, "VehicleMileageSanitized": 5800, "PayMethodSanitized": "Financing", "CitySanitized": "Fresno", "StateSanitized": "CA", "DeliveryStatusSanitized": "Shipped"}, {"sale_id": 45, "SaleDateSanitized": "2025-12-07", "PorscheModelSanitized": "Taycan 4S", "ModelYearSanitized": 2025, "SalesPriceSanitized": 129000.0, "VehicleMileageSanitized": 0, "PayMethodSanitized": "ACH Payment", "CitySanitized": "Virginia Beach", "StateSanitized": "VA", "DeliveryStatusSanitized": "In Transit"}, {"sale_id": 46, "SaleDateSanitized": "2025-12-22", "PorscheModelSanitized": "Panamera Turbo", "ModelYearSanitized": 2022, "SalesPriceSanitized": 136000.0, "VehicleMileageSanitized": 18400, "PayMethodSanitized": "Credit Card", "CitySanitized": "Colorado Springs", "StateSanitized": "CO", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 47, "SaleDateSanitized": null, "PorscheModelSanitized": "911 GT3 RS", "ModelYearSanitized": 2024, "SalesPriceSanitized": 286500.0, "VehicleMileageSanitized": 700, "PayMethodSanitized": "Wire Transfer", "CitySanitized": "Arlington", "StateSanitized": "TX", "DeliveryStatusSanitized": "Pending"}, {"sale_id": 48, "SaleDateSanitized": "2026-01-08", "PorscheModelSanitized": "Cayenne E-Hybrid", "ModelYearSanitized": 2023, "SalesPriceSanitized": 92800.0, "VehicleMileageSanitized": 15000, "PayMethodSanitized": "Lease", "CitySanitized": "Bakersfield", "StateSanitized": "CA", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 49, "SaleDateSanitized": "2026-01-15", "PorscheModelSanitized": "Macan T", "ModelYearSanitized": 2022, "SalesPriceSanitized": 72400.0, "VehicleMileageSanitized": 19750, "PayMethodSanitized": "Cash", "CitySanitized": "Mesa", "StateSanitized": "AZ", "DeliveryStatusSanitized": "Awaiting Pickup"}, {"sale_id": 50, "SaleDateSanitized": "2026-01-28", "PorscheModelSanitized": "Taycan Turbo", "ModelYearSanitized": 2025, "SalesPriceSanitized": 158500.0, "VehicleMileageSanitized": 3200, "PayMethodSanitized": "Crypto Payment", "CitySanitized": "Atlanta", "StateSanitized": "GA", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 51, "SaleDateSanitized": "2026-02-03", "PorscheModelSanitized": "718 Cayman", "ModelYearSanitized": 2021, "SalesPriceSanitized": 69900.0, "VehicleMileageSanitized": 27600, "PayMethodSanitized": "Bank Transfer", "CitySanitized": "Long Beach", "StateSanitized": "CA", "DeliveryStatusSanitized": "Pending"}, {"sale_id": 52, "SaleDateSanitized": null, "PorscheModelSanitized": "911 Targa 4", "ModelYearSanitized": 2024, "SalesPriceSanitized": 141250.0, "VehicleMileageSanitized": 2100, "PayMethodSanitized": "Financing", "CitySanitized": "Oakland", "StateSanitized": "CA", "DeliveryStatusSanitized": "In Transit"}, {"sale_id": 53, "SaleDateSanitized": "2026-02-19", "PorscheModelSanitized": "Panamera", "ModelYearSanitized": 2020, "SalesPriceSanitized": 71500.0, "VehicleMileageSanitized": 52000, "PayMethodSanitized": "Wire Transfer", "CitySanitized": "Tulsa", "StateSanitized": "OK", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 54, "SaleDateSanitized": "2026-02-25", "PorscheModelSanitized": "Cayenne Turbo", "ModelYearSanitized": 2023, "SalesPriceSanitized": 146800.0, "VehicleMileageSanitized": 11300, "PayMethodSanitized": "Credit Card", "CitySanitized": "Wichita", "StateSanitized": "KS", "DeliveryStatusSanitized": "Pending"}, {"sale_id": 55, "SaleDateSanitized": "2026-03-01", "PorscheModelSanitized": "Macan Electric", "ModelYearSanitized": 2025, "SalesPriceSanitized": 89700.0, "VehicleMileageSanitized": 0, "PayMethodSanitized": "Lease", "CitySanitized": "New Orleans", "StateSanitized": "LA", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 56, "SaleDateSanitized": "2026-03-14", "PorscheModelSanitized": "911 Carrera S", "ModelYearSanitized": 2022, "SalesPriceSanitized": 104600.0, "VehicleMileageSanitized": 15900, "PayMethodSanitized": "Bank Transfer", "CitySanitized": "Honolulu", "StateSanitized": "HI", "DeliveryStatusSanitized": "Cancelled"}, {"sale_id": 57, "SaleDateSanitized": null, "PorscheModelSanitized": "Taycan GTS", "ModelYearSanitized": 2024, "SalesPriceSanitized": 142000.0, "VehicleMileageSanitized": 6600, "PayMethodSanitized": "Wire Transfer", "CitySanitized": "Anaheim", "StateSanitized": "CA", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 58, "SaleDateSanitized": "2026-04-08", "PorscheModelSanitized": "Cayenne", "ModelYearSanitized": 2021, "SalesPriceSanitized": 78400.0, "VehicleMileageSanitized": 40250, "PayMethodSanitized": "Cash", "CitySanitized": "Henderson", "StateSanitized": "NV", "DeliveryStatusSanitized": "Awaiting Review"}, {"sale_id": 59, "SaleDateSanitized": null, "PorscheModelSanitized": "718 Spyder RS", "ModelYearSanitized": 2025, "SalesPriceSanitized": 169000.0, "VehicleMileageSanitized": 850, "PayMethodSanitized": "Financing", "CitySanitized": "Lexington", "StateSanitized": "KY", "DeliveryStatusSanitized": "In Transit"}, {"sale_id": 60, "SaleDateSanitized": "2026-04-21", "PorscheModelSanitized": "911 Dakar", "ModelYearSanitized": 2024, "SalesPriceSanitized": 268900.0, "VehicleMileageSanitized": 1400, "PayMethodSanitized": "Credit Card", "CitySanitized": "Riverside", "StateSanitized": "CA", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 61, "SaleDateSanitized": "2026-04-29", "PorscheModelSanitized": "Panamera 4", "ModelYearSanitized": 2023, "SalesPriceSanitized": 101300.0, "VehicleMileageSanitized": 12700, "PayMethodSanitized": "Wire Transfer", "CitySanitized": "Corpus Christi", "StateSanitized": "TX", "DeliveryStatusSanitized": "Pending"}, {"sale_id": 62, "SaleDateSanitized": "2026-05-05", "PorscheModelSanitized": "Macan S", "ModelYearSanitized": 2021, "SalesPriceSanitized": 66750.0, "VehicleMileageSanitized": 29800, "PayMethodSanitized": "Cash", "CitySanitized": "St. Louis", "StateSanitized": "MO", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 63, "SaleDateSanitized": "2026-05-14", "PorscheModelSanitized": "Taycan Cross Turismo", "ModelYearSanitized": 2024, "SalesPriceSanitized": 127900.0, "VehicleMileageSanitized": 7500, "PayMethodSanitized": "Lease", "CitySanitized": "Pittsburgh", "StateSanitized": "PA", "DeliveryStatusSanitized": "In Transit"}, {"sale_id": 64, "SaleDateSanitized": "2026-05-23", "PorscheModelSanitized": "Cayenne Turbo GT", "ModelYearSanitized": 2025, "SalesPriceSanitized": 200000.0, "VehicleMileageSanitized": 1950, "PayMethodSanitized": "Wire Transfer", "CitySanitized": "Cincinnati", "StateSanitized": "OH", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 65, "SaleDateSanitized": "2026-06-02", "PorscheModelSanitized": "911 Carrera Cabriolet", "ModelYearSanitized": 2023, "SalesPriceSanitized": 132000.0, "VehicleMileageSanitized": 8800, "PayMethodSanitized": "Crypto Payment", "CitySanitized": "Anchorage", "StateSanitized": "AK", "DeliveryStatusSanitized": "Pending Review"}, {"sale_id": 66, "SaleDateSanitized": "2026-06-15", "PorscheModelSanitized": "718 Cayman GT4 RS", "ModelYearSanitized": 2024, "SalesPriceSanitized": 176400.0, "VehicleMileageSanitized": 600, "PayMethodSanitized": "Credit Card", "CitySanitized": "Plano", "StateSanitized": "TX", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 67, "SaleDateSanitized": null, "PorscheModelSanitized": "Panamera 4 E-Hybrid", "ModelYearSanitized": 2022, "SalesPriceSanitized": 108500.0, "VehicleMileageSanitized": 16200, "PayMethodSanitized": "Bank Transfer", "CitySanitized": "Newark", "StateSanitized": "NJ", "DeliveryStatusSanitized": "Cancelled"}, {"sale_id": 68, "SaleDateSanitized": "2026-07-07", "PorscheModelSanitized": "Macan", "ModelYearSanitized": 2021, "SalesPriceSanitized": 59000.0, "VehicleMileageSanitized": 36000, "PayMethodSanitized": "Financing", "CitySanitized": "Greensboro", "StateSanitized": "NC", "DeliveryStatusSanitized": "Awaiting Delivery"}, {"sale_id": 69, "SaleDateSanitized": "2026-07-20", "PorscheModelSanitized": "Taycan Turbo S", "ModelYearSanitized": 2025, "SalesPriceSanitized": 218000.0, "VehicleMileageSanitized": 0, "PayMethodSanitized": "Wire Transfer", "CitySanitized": "Lincoln", "StateSanitized": "NE", "DeliveryStatusSanitized": "Pending"}, {"sale_id": 70, "SaleDateSanitized": null, "PorscheModelSanitized": "Cayenne S", "ModelYearSanitized": 2024, "SalesPriceSanitized": 99950.0, "VehicleMileageSanitized": 5300, "PayMethodSanitized": "Debit Card", "CitySanitized": "Jersey City", "StateSanitized": "NJ", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 71, "SaleDateSanitized": "2026-04-08", "PorscheModelSanitized": "911 Carrera GTS", "ModelYearSanitized": 2024, "SalesPriceSanitized": 121750.0, "VehicleMileageSanitized": 5872, "PayMethodSanitized": "Credit Card", "CitySanitized": "Chandler", "StateSanitized": "AZ", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 72, "SaleDateSanitized": "2026-08-18", "PorscheModelSanitized": "718 Boxster GTS", "ModelYearSanitized": 2023, "SalesPriceSanitized": 91500.0, "VehicleMileageSanitized": 13300, "PayMethodSanitized": "Lease", "CitySanitized": "Reno", "StateSanitized": "NV", "DeliveryStatusSanitized": "Shipped"}, {"sale_id": 73, "SaleDateSanitized": "2026-08-31", "PorscheModelSanitized": "Panamera Turbo S", "ModelYearSanitized": 2022, "SalesPriceSanitized": 134000.0, "VehicleMileageSanitized": 20100, "PayMethodSanitized": "Wire Transfer", "CitySanitized": "Buffalo", "StateSanitized": "NY", "DeliveryStatusSanitized": "In Transit"}, {"sale_id": 74, "SaleDateSanitized": "2026-09-09", "PorscheModelSanitized": "Macan GTS", "ModelYearSanitized": 2024, "SalesPriceSanitized": 96800.0, "VehicleMileageSanitized": 0, "PayMethodSanitized": "ACH Payment", "CitySanitized": "Durham", "StateSanitized": "NC", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 75, "SaleDateSanitized": "2026-09-17", "PorscheModelSanitized": "Taycan 4S", "ModelYearSanitized": 2025, "SalesPriceSanitized": 131600.0, "VehicleMileageSanitized": 2900, "PayMethodSanitized": "Wire Transfer", "CitySanitized": "Laredo", "StateSanitized": "TX", "DeliveryStatusSanitized": "Pending Approval"}, {"sale_id": 76, "SaleDateSanitized": "2026-09-28", "PorscheModelSanitized": "Cayenne E-Hybrid", "ModelYearSanitized": 2023, "SalesPriceSanitized": 94300.0, "VehicleMileageSanitized": 13100, "PayMethodSanitized": "Cash", "CitySanitized": "Madison", "StateSanitized": "WI", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 77, "SaleDateSanitized": "2026-10-06", "PorscheModelSanitized": "911 Turbo S", "ModelYearSanitized": 2025, "SalesPriceSanitized": 242000.0, "VehicleMileageSanitized": 1100, "PayMethodSanitized": "Crypto Payment", "CitySanitized": "Lubbock", "StateSanitized": "TX", "DeliveryStatusSanitized": "Awaiting Pickup"}, {"sale_id": 78, "SaleDateSanitized": "2026-10-16", "PorscheModelSanitized": "718 Cayman S", "ModelYearSanitized": 2022, "SalesPriceSanitized": 82750.0, "VehicleMileageSanitized": 22500, "PayMethodSanitized": "Credit Card", "CitySanitized": "Toledo", "StateSanitized": "OH", "DeliveryStatusSanitized": "Cancelled"}, {"sale_id": 79, "SaleDateSanitized": "2026-10-29", "PorscheModelSanitized": "Macan Electric", "ModelYearSanitized": 2026, "SalesPriceSanitized": 91300.0, "VehicleMileageSanitized": 0, "PayMethodSanitized": "Wire Transfer", "CitySanitized": "Irvine", "StateSanitized": "CA", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 80, "SaleDateSanitized": "2026-11-03", "PorscheModelSanitized": "Panamera", "ModelYearSanitized": 2021, "SalesPriceSanitized": 79900.0, "VehicleMileageSanitized": 44800, "PayMethodSanitized": "Financing", "CitySanitized": "Garland", "StateSanitized": "TX", "DeliveryStatusSanitized": "Pending"}, {"sale_id": 81, "SaleDateSanitized": null, "PorscheModelSanitized": "Cayenne Coupe", "ModelYearSanitized": 2024, "SalesPriceSanitized": 111000.0, "VehicleMileageSanitized": 6700, "PayMethodSanitized": "Bank Transfer", "CitySanitized": "Irving", "StateSanitized": "TX", "DeliveryStatusSanitized": "In Transit"}, {"sale_id": 82, "SaleDateSanitized": "2026-12-11", "PorscheModelSanitized": "911 Targa 4S", "ModelYearSanitized": 2023, "SalesPriceSanitized": 156500.0, "VehicleMileageSanitized": 4200, "PayMethodSanitized": "Cash", "CitySanitized": "Chesapeake", "StateSanitized": "VA", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 83, "SaleDateSanitized": "2026-12-24", "PorscheModelSanitized": "Taycan", "ModelYearSanitized": 2025, "SalesPriceSanitized": 119900.0, "VehicleMileageSanitized": 1250, "PayMethodSanitized": "Lease", "CitySanitized": "Scottsdale", "StateSanitized": "AZ", "DeliveryStatusSanitized": "Pending"}, {"sale_id": 84, "SaleDateSanitized": null, "PorscheModelSanitized": "Macan T", "ModelYearSanitized": 2022, "SalesPriceSanitized": 73200.0, "VehicleMileageSanitized": 18600, "PayMethodSanitized": "Wire Transfer", "CitySanitized": "Norfolk", "StateSanitized": "VA", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 85, "SaleDateSanitized": "2026-12-28", "PorscheModelSanitized": "911 GT3", "ModelYearSanitized": 2024, "SalesPriceSanitized": 224000.0, "VehicleMileageSanitized": 3000, "PayMethodSanitized": "Wire Transfer", "CitySanitized": "Boise", "StateSanitized": "ID", "DeliveryStatusSanitized": "Awaiting Delivery"}, {"sale_id": 86, "SaleDateSanitized": "2027-01-15", "PorscheModelSanitized": "911 Carrera", "ModelYearSanitized": 2024, "SalesPriceSanitized": 126900.0, "VehicleMileageSanitized": 7200, "PayMethodSanitized": "Credit Card", "CitySanitized": "Orlando", "StateSanitized": "FL", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 87, "SaleDateSanitized": "2027-01-29", "PorscheModelSanitized": "Cayenne", "ModelYearSanitized": 2023, "SalesPriceSanitized": 84500.0, "VehicleMileageSanitized": 21400, "PayMethodSanitized": "Bank Transfer", "CitySanitized": "San Jose", "StateSanitized": "CA", "DeliveryStatusSanitized": "Pending"}, {"sale_id": 88, "SaleDateSanitized": "2027-02-11", "PorscheModelSanitized": "Macan S", "ModelYearSanitized": 2022, "SalesPriceSanitized": 69800.0, "VehicleMileageSanitized": 26300, "PayMethodSanitized": "Financing", "CitySanitized": "Tampa", "StateSanitized": "FL", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 89, "SaleDateSanitized": null, "PorscheModelSanitized": "Taycan 4S", "ModelYearSanitized": 2025, "SalesPriceSanitized": 132700.0, "VehicleMileageSanitized": 0, "PayMethodSanitized": "Wire Transfer", "CitySanitized": "Denver", "StateSanitized": "CO", "DeliveryStatusSanitized": "In Transit"}, {"sale_id": 90, "SaleDateSanitized": "2027-03-05", "PorscheModelSanitized": "Panamera", "ModelYearSanitized": 2021, "SalesPriceSanitized": 81000.0, "VehicleMileageSanitized": 42, "PayMethodSanitized": "Cash", "CitySanitized": "Austin", "StateSanitized": "TX", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 91, "SaleDateSanitized": "2027-03-18", "PorscheModelSanitized": "718 Cayman", "ModelYearSanitized": 2023, "SalesPriceSanitized": 78900.0, "VehicleMileageSanitized": 17500, "PayMethodSanitized": "Debit Card", "CitySanitized": "Seattle", "StateSanitized": "WA", "DeliveryStatusSanitized": "Cancelled"}, {"sale_id": 92, "SaleDateSanitized": "2027-04-02", "PorscheModelSanitized": "911 Turbo S", "ModelYearSanitized": 2026, "SalesPriceSanitized": 249300.0, "VehicleMileageSanitized": 900, "PayMethodSanitized": "Wire Transfer", "CitySanitized": "Boston", "StateSanitized": "MA", "DeliveryStatusSanitized": "Awaiting Delivery"}, {"sale_id": 93, "SaleDateSanitized": null, "PorscheModelSanitized": "Cayenne Coupe", "ModelYearSanitized": 2024, "SalesPriceSanitized": 108750.0, "VehicleMileageSanitized": 5530, "PayMethodSanitized": "Wire Transfer", "CitySanitized": "Phoenix", "StateSanitized": "AZ", "DeliveryStatusSanitized": "Pending Approval"}, {"sale_id": 94, "SaleDateSanitized": null, "PorscheModelSanitized": "Macan Electric", "ModelYearSanitized": 2026, "SalesPriceSanitized": 92600.0, "VehicleMileageSanitized": 0, "PayMethodSanitized": "Financing", "CitySanitized": "Chicago", "StateSanitized": "IL", "DeliveryStatusSanitized": "Shipped"}, {"sale_id": 95, "SaleDateSanitized": "2027-05-12", "PorscheModelSanitized": "Taycan Turbo", "ModelYearSanitized": 2025, "SalesPriceSanitized": 164000.0, "VehicleMileageSanitized": 0, "PayMethodSanitized": "ACH Payment", "CitySanitized": "Dallas", "StateSanitized": "TX", "DeliveryStatusSanitized": "In Transit"}, {"sale_id": 96, "SaleDateSanitized": "2027-05-27", "PorscheModelSanitized": "Panamera 4S", "ModelYearSanitized": 2024, "SalesPriceSanitized": 119000.0, "VehicleMileageSanitized": 13400, "PayMethodSanitized": "Credit Card", "CitySanitized": "San Francisco", "StateSanitized": "CA", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 97, "SaleDateSanitized": null, "PorscheModelSanitized": "911 GT3", "ModelYearSanitized": 2026, "SalesPriceSanitized": 232500.0, "VehicleMileageSanitized": 1700, "PayMethodSanitized": "Wire Transfer", "CitySanitized": "Las Vegas", "StateSanitized": "NV", "DeliveryStatusSanitized": "Pending"}, {"sale_id": 98, "SaleDateSanitized": "2027-06-18", "PorscheModelSanitized": "Cayenne E-Hybrid", "ModelYearSanitized": 2023, "SalesPriceSanitized": 96800.0, "VehicleMileageSanitized": 14000, "PayMethodSanitized": "Lease", "CitySanitized": "Charlotte", "StateSanitized": "NC", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 99, "SaleDateSanitized": "2027-07-03", "PorscheModelSanitized": "Macan T", "ModelYearSanitized": 2022, "SalesPriceSanitized": 74400.0, "VehicleMileageSanitized": 20750, "PayMethodSanitized": "Cash", "CitySanitized": "Mesa", "StateSanitized": "AZ", "DeliveryStatusSanitized": "Awaiting Pickup"}, {"sale_id": 100, "SaleDateSanitized": "2027-07-22", "PorscheModelSanitized": "Taycan GTS", "ModelYearSanitized": 2025, "SalesPriceSanitized": 148500.0, "VehicleMileageSanitized": 5200, "PayMethodSanitized": "Crypto Payment", "CitySanitized": "Atlanta", "StateSanitized": "GA", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 101, "SaleDateSanitized": "2027-08-08", "PorscheModelSanitized": "718 Boxster", "ModelYearSanitized": 2021, "SalesPriceSanitized": 71900.0, "VehicleMileageSanitized": 29600, "PayMethodSanitized": "Bank Transfer", "CitySanitized": "Long Beach", "StateSanitized": "CA", "DeliveryStatusSanitized": "Pending"}, {"sale_id": 102, "SaleDateSanitized": null, "PorscheModelSanitized": "911 Targa 4", "ModelYearSanitized": 2024, "SalesPriceSanitized": 143250.0, "VehicleMileageSanitized": 3100, "PayMethodSanitized": "Financing", "CitySanitized": "Oakland", "StateSanitized": "CA", "DeliveryStatusSanitized": "In Transit"}, {"sale_id": 103, "SaleDateSanitized": "2027-09-19", "PorscheModelSanitized": "Panamera Turbo", "ModelYearSanitized": 2020, "SalesPriceSanitized": 137500.0, "VehicleMileageSanitized": 48000, "PayMethodSanitized": "Wire Transfer", "CitySanitized": "Tulsa", "StateSanitized": "OK", "DeliveryStatusSanitized": "Delivered"}, {"sale_id": 104, "SaleDateSanitized": "2027-09-25", "PorscheModelSanitized": "Cayenne Turbo GT", "ModelYearSanitized": 2025, "SalesPriceSanitized": 204800.0, "VehicleMileageSanitized": 3300, "PayMethodSanitized": "Credit Card", "CitySanitized": "Wichita", "StateSanitized": "KS", "DeliveryStatusSanitized": "Pending"}, {"sale_id": 105, "SaleDateSanitized": "2027-10-01", "PorscheModelSanitized": "911 Dakar", "ModelYearSanitized": 2024, "SalesPriceSanitized": 271700.0, "VehicleMileageSanitized": 1050, "PayMethodSanitized": "Lease", "CitySanitized": "New Orleans", "StateSanitized": "LA", "DeliveryStatusSanitized": "Delivered"}];
+
+/* =========================================================
+   ESTADO / FILTROS
+   ========================================================= */
+let filters = { model:'all', state:'all', year:'all', pay:'all' };
+let charts = {};
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+function fmtCurrency(v){
+  if (v === null || v === undefined || isNaN(v)) v = 0;
+  return '$ ' + v.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function fmtCurrencyShort(v){
+  if (v >= 1e6) return '$' + (v/1e6).toFixed(2) + 'M';
+  if (v >= 1e3) return '$' + (v/1e3).toFixed(0) + 'K';
+  return '$' + v.toFixed(0);
+}
+function uniqueSorted(arr){
+  return [...new Set(arr)].sort((a,b)=> (a>b?1:-1));
+}
+
+const COLOR_RED = '#D5001C';
+const COLOR_RED_SOFT = 'rgba(213,0,28,0.65)';
+const COLOR_SILVER = '#C9CCD1';
+const COLOR_GOLD = '#C9A227';
+const GRID_COLOR = 'rgba(255,255,255,0.06)';
+const TEXT_DIM = '#A6A6A6';
+
+Chart.defaults.font.family = "'Inter','Roboto',Arial,sans-serif";
+Chart.defaults.color = TEXT_DIM;
+
+/* =========================================================
+   POPULAR FILTROS (a partir da base completa)
+   ========================================================= */
+function populateFilters(){
+  const models = uniqueSorted(RAW_DATA.map(r=>r.PorscheModelSanitized).filter(Boolean));
+  const states = uniqueSorted(RAW_DATA.map(r=>r.StateSanitized).filter(Boolean));
+  const years = uniqueSorted(RAW_DATA.map(r=>r.ModelYearSanitized).filter(v=>v!==null && v!==undefined)).sort((a,b)=>a-b);
+  const pays = uniqueSorted(RAW_DATA.map(r=>r.PayMethodSanitized).filter(Boolean));
+
+  fillSelect('f-model', models);
+  fillSelect('f-state', states);
+  fillSelect('f-year', years);
+  fillSelect('f-pay', pays);
+}
+function fillSelect(id, values){
+  const sel = document.getElementById(id);
+  values.forEach(v=>{
+    const opt = document.createElement('option');
+    opt.value = v;
+    opt.textContent = v;
+    sel.appendChild(opt);
+  });
+}
+
+/* =========================================================
+   APLICAR FILTROS
+   ========================================================= */
+function getFilteredData(){
+  return RAW_DATA.filter(r=>{
+    if (filters.model !== 'all' && r.PorscheModelSanitized !== filters.model) return false;
+    if (filters.state !== 'all' && r.StateSanitized !== filters.state) return false;
+    if (filters.year !== 'all' && String(r.ModelYearSanitized) !== String(filters.year)) return false;
+    if (filters.pay !== 'all' && r.PayMethodSanitized !== filters.pay) return false;
+    return true;
+  });
+}
+
+/* =========================================================
+   KPIs
+   ========================================================= */
+function renderKPIs(data){
+  const totalRevenue = data.reduce((s,r)=> s + (r.SalesPriceSanitized || 0), 0);
+  const totalVolume = data.length;
+  const avgTicket = totalVolume > 0 ? totalRevenue / totalVolume : 0;
+
+  document.getElementById('kpi-revenue').textContent = fmtCurrency(totalRevenue);
+  document.getElementById('kpi-revenue-sub').textContent = totalVolume + ' vendas no filtro atual';
+  document.getElementById('kpi-volume').textContent = totalVolume.toLocaleString('en-US');
+  document.getElementById('kpi-avg').textContent = fmtCurrency(avgTicket);
+
+  // Modelo mais vendido em receita
+  const byModel = {};
+  data.forEach(r=>{
+    const m = r.PorscheModelSanitized || 'N/A';
+    byModel[m] = (byModel[m] || 0) + (r.SalesPriceSanitized || 0);
+  });
+  let topModel = '—', topVal = 0;
+  Object.entries(byModel).forEach(([m,v])=>{
+    if (v > topVal){ topVal = v; topModel = m; }
+  });
+  document.getElementById('kpi-topmodel').textContent = topModel;
+  document.getElementById('kpi-topmodel-sub').textContent = topVal > 0 ? fmtCurrency(topVal) + ' em receita' : '\u00A0';
+
+  document.getElementById('result-count').textContent = totalVolume + ' de ' + RAW_DATA.length + ' registros exibidos';
+}
+
+/* =========================================================
+   GRÁFICO 1: Faturamento por Ano do Modelo
+   ========================================================= */
+function renderChartRevenueByYear(data){
+  const byYear = {};
+  data.forEach(r=>{
+    const y = r.ModelYearSanitized;
+    if (y === null || y === undefined) return;
+    byYear[y] = (byYear[y] || 0) + (r.SalesPriceSanitized || 0);
+  });
+  const years = Object.keys(byYear).sort((a,b)=>a-b);
+  const values = years.map(y=>byYear[y]);
+
+  const ctx = document.getElementById('chartRevenueByYear').getContext('2d');
+  if (charts.revenueByYear) charts.revenueByYear.destroy();
+
+  if (years.length === 0){
+    charts.revenueByYear = null;
+    return;
+  }
+
+  charts.revenueByYear = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: years,
+      datasets: [{
+        label: 'Faturamento Total',
+        data: values,
+        borderColor: COLOR_RED,
+        backgroundColor: 'rgba(213,0,28,0.15)',
+        pointBackgroundColor: COLOR_RED,
+        pointBorderColor: '#fff',
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        borderWidth: 2.5,
+        fill: true,
+        tension: 0.3
+      }]
+    },
+    options: {
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          callbacks:{
+            label: (ctx)=> ' ' + fmtCurrency(ctx.parsed.y)
+          },
+          backgroundColor:'#1a1a1a',
+          borderColor:COLOR_RED,
+          borderWidth:1,
+          titleColor:'#fff',
+          bodyColor:'#fff'
+        }
+      },
+      scales:{
+        x:{ grid:{color:GRID_COLOR}, ticks:{color:TEXT_DIM} },
+        y:{
+          grid:{color:GRID_COLOR},
+          ticks:{
+            color:TEXT_DIM,
+            callback: (v)=> fmtCurrencyShort(v)
+          }
+        }
+      }
+    }
+  });
+}
+
+/* =========================================================
+   GRÁFICO 2: Top Estados (Receita + Volume) - Barras Horizontais
+   ========================================================= */
+function renderChartByState(data){
+  const byState = {};
+  data.forEach(r=>{
+    const s = r.StateSanitized || 'N/A';
+    if (!byState[s]) byState[s] = {revenue:0, volume:0};
+    byState[s].revenue += (r.SalesPriceSanitized || 0);
+    byState[s].volume += 1;
+  });
+  const entries = Object.entries(byState).sort((a,b)=> b[1].revenue - a[1].revenue).slice(0,10);
+  const labels = entries.map(e=>e[0]);
+  const revenues = entries.map(e=>e[1].revenue);
+  const volumes = entries.map(e=>e[1].volume);
+
+  const ctx = document.getElementById('chartByState').getContext('2d');
+  if (charts.byState) charts.byState.destroy();
+
+  if (entries.length === 0){
+    charts.byState = null;
+    return;
+  }
+
+  charts.byState = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: labels,
+      datasets:[
+        {
+          label:'Faturamento ($)',
+          data: revenues,
+          backgroundColor: COLOR_RED_SOFT,
+          borderColor: COLOR_RED,
+          borderWidth:1,
+          yAxisID:'y',
+          borderRadius:4
+        },
+        {
+          label:'Volume (unidades)',
+          data: volumes,
+          backgroundColor: 'rgba(201,204,209,0.35)',
+          borderColor: COLOR_SILVER,
+          borderWidth:1,
+          yAxisID:'y1',
+          borderRadius:4
+        }
+      ]
+    },
+    options:{
+      indexAxis:'y',
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{
+          labels:{color:TEXT_DIM}
+        },
+        tooltip:{
+          callbacks:{
+            label: (ctx)=>{
+              if (ctx.dataset.label.indexOf('Faturamento') !== -1) return ' ' + fmtCurrency(ctx.parsed.x);
+              return ' ' + ctx.parsed.x + ' unidades';
+            }
+          },
+          backgroundColor:'#1a1a1a',
+          borderColor:COLOR_RED,
+          borderWidth:1,
+          titleColor:'#fff',
+          bodyColor:'#fff'
+        }
+      },
+      scales:{
+        x:{
+          position:'bottom',
+          grid:{color:GRID_COLOR},
+          ticks:{ color:TEXT_DIM, callback:(v)=>fmtCurrencyShort(v) }
+        },
+        y:{ grid:{display:false}, ticks:{color:TEXT_DIM} },
+        y1:{ display:false }
+      }
+    }
+  });
+}
+
+/* =========================================================
+   GRÁFICO 3a/3b: Top e Bottom Modelos por Receita
+   ========================================================= */
+function renderChartModels(data){
+  const byModel = {};
+  data.forEach(r=>{
+    const m = r.PorscheModelSanitized || 'N/A';
+    byModel[m] = (byModel[m] || 0) + (r.SalesPriceSanitized || 0);
+  });
+  const sorted = Object.entries(byModel).sort((a,b)=> b[1]-a[1]);
+  const top10 = sorted.slice(0,10);
+  const bottom10 = sorted.slice(-10).reverse();
+
+  // Top Models
+  const ctxTop = document.getElementById('chartTopModels').getContext('2d');
+  if (charts.topModels) charts.topModels.destroy();
+  if (top10.length > 0){
+    charts.topModels = new Chart(ctxTop, {
+      type:'bar',
+      data:{
+        labels: top10.map(e=>e[0]),
+        datasets:[{
+          label:'Faturamento',
+          data: top10.map(e=>e[1]),
+          backgroundColor: COLOR_RED_SOFT,
+          borderColor: COLOR_RED,
+          borderWidth:1,
+          borderRadius:4
+        }]
+      },
+      options: modelChartOptions()
+    });
+  } else { charts.topModels = null; }
+
+  // Bottom Models
+  const ctxBottom = document.getElementById('chartBottomModels').getContext('2d');
+  if (charts.bottomModels) charts.bottomModels.destroy();
+  if (bottom10.length > 0){
+    charts.bottomModels = new Chart(ctxBottom, {
+      type:'bar',
+      data:{
+        labels: bottom10.map(e=>e[0]),
+        datasets:[{
+          label:'Faturamento',
+          data: bottom10.map(e=>e[1]),
+          backgroundColor: 'rgba(201,162,39,0.35)',
+          borderColor: COLOR_GOLD,
+          borderWidth:1,
+          borderRadius:4
+        }]
+      },
+      options: modelChartOptions()
+    });
+  } else { charts.bottomModels = null; }
+}
+function modelChartOptions(){
+  return {
+    indexAxis:'y',
+    responsive:true,
+    maintainAspectRatio:false,
+    plugins:{
+      legend:{display:false},
+      tooltip:{
+        callbacks:{ label: (ctx)=> ' ' + fmtCurrency(ctx.parsed.x) },
+        backgroundColor:'#1a1a1a',
+        borderColor:COLOR_RED,
+        borderWidth:1,
+        titleColor:'#fff',
+        bodyColor:'#fff'
+      }
+    },
+    scales:{
+      x:{ grid:{color:GRID_COLOR}, ticks:{color:TEXT_DIM, callback:(v)=>fmtCurrencyShort(v)} },
+      y:{ grid:{display:false}, ticks:{color:TEXT_DIM, font:{size:11}} }
+    }
+  };
+}
+
+/* =========================================================
+   RENDER GERAL
+   ========================================================= */
+function renderAll(){
+  const data = getFilteredData();
+  renderKPIs(data);
+  renderChartRevenueByYear(data);
+  renderChartByState(data);
+  renderChartModels(data);
+}
+
+/* =========================================================
+   EVENTOS
+   ========================================================= */
+document.getElementById('f-model').addEventListener('change', (e)=>{ filters.model = e.target.value; renderAll(); });
+document.getElementById('f-state').addEventListener('change', (e)=>{ filters.state = e.target.value; renderAll(); });
+document.getElementById('f-year').addEventListener('change', (e)=>{ filters.year = e.target.value; renderAll(); });
+document.getElementById('f-pay').addEventListener('change', (e)=>{ filters.pay = e.target.value; renderAll(); });
+document.getElementById('btn-clear').addEventListener('click', ()=>{
+  filters = { model:'all', state:'all', year:'all', pay:'all' };
+  document.getElementById('f-model').value = 'all';
+  document.getElementById('f-state').value = 'all';
+  document.getElementById('f-year').value = 'all';
+  document.getElementById('f-pay').value = 'all';
+  renderAll();
+});
+
+/* =========================================================
+   INIT
+   ========================================================= */
+populateFilters();
+renderAll();
+</script>
+</body>
+</html>
